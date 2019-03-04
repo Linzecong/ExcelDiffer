@@ -1,7 +1,7 @@
 #-*- codingg:utf8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout,QAbstractItemView
 import sys
- 
+import xlrd
 class ExcelWidget(QTabWidget):
     def __init__(self):
         super(ExcelWidget,self).__init__()
@@ -30,9 +30,11 @@ class ExcelWidget(QTabWidget):
 
     def setData(self,data):
         self.clear()
+        self.TableWidgets.clear()
         
         for sheet in data:
             tableWidget = QTableWidget()
+            tableWidget.setStyleSheet("selection-background-color: #909399");
             hlable = []
             vlable = []
             for i in range(sheet["col"]):
@@ -48,7 +50,10 @@ class ExcelWidget(QTabWidget):
 
             for i in range(sheet["row"]):
                 for j in range(sheet["col"]):
-                    tableWidget.setItem(i,j,QTableWidgetItem(str(sheet["data"][i][j].value)))
+                    value = sheet["data"][i][j].value
+                    if sheet["data"][i][j].ctype == 3:
+                        value = xlrd.xldate.xldate_as_datetime(value,0).strftime('%Y/%m/%d %H:%M:%S')
+                    tableWidget.setItem(i,j,QTableWidgetItem(str(value)))
             
             for span in sheet["merged"]:
                 tableWidget.setSpan(span[0],span[2],span[1]-span[0],span[3]-span[2])

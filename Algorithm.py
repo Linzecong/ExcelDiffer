@@ -41,7 +41,12 @@ class MyAlg:
         for i in range(data["row"]):
             rowdata = []
             for j in range(data["col"]):
-                rowdata.append(data["data"][i][j].value)
+                if data["data"][i][j].ctype == 3:
+                    rowdata.append(xlrd.xldate.xldate_as_datetime(data["data"][i][j].value, 0).strftime('%Y/%m/%d %H:%M:%S'))
+                else:
+                    rowdata.append(data["data"][i][j].value)
+                
+                
             self.OldData["data"].append(rowdata)
 
         print(self.OldData)
@@ -57,7 +62,10 @@ class MyAlg:
         for i in range(data["row"]):
             rowdata = []
             for j in range(data["col"]):
-                rowdata.append(data["data"][i][j].value)
+                if data["data"][i][j].ctype == 3:
+                    rowdata.append(xlrd.xldate.xldate_as_datetime(data["data"][i][j].value, 0).strftime('%Y/%m/%d %H:%M:%S'))
+                else:
+                    rowdata.append(data["data"][i][j].value)
             self.NewData["data"].append(rowdata)
 
         print(self.NewData)
@@ -164,8 +172,8 @@ class MyAlg:
 
         diff["add_col"] = []
         diff["del_col"] = []
-        YZ = 0.4 #匹配成功的阈值 0~1越高精准度越高，
-        PP = 0.7 #用于不用跑完全部行，加速比较
+        YZ = 0.5 #匹配成功的阈值 0~1越高精准度越高，
+        PP = 0.8 #用于不用跑完全部行，加速比较
         col_mp = [-1]*coln  # 列对应 新 -> 旧
         col_vis = [0]*colo  # 旧中已匹配的列
 
@@ -188,7 +196,7 @@ class MyAlg:
             if curP >= YZ:
                 col_mp[i] = curIndex
                 col_vis[curIndex] = 1
-        print(col_mp, col_vis)
+        # print(col_mp, col_vis)
         for i, item in enumerate(col_mp):
             if item == -1:
                 diff["add_col"].append(self.intToABC(i+1))
@@ -240,7 +248,7 @@ class MyAlg:
             if curP >= YZ:
                 row_mp[i] = curIndex
                 row_vis[curIndex] = 1
-        print(row_mp, row_vis)
+        # print(row_mp, row_vis)
         for i, item in enumerate(row_mp):
             if item == -1:
                 diff["add_row"].append(i+1)

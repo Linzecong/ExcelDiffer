@@ -1,5 +1,5 @@
 #-*- codingg:utf8 -*-
-from PyQt5.QtWidgets import QMainWindow,QApplication,QMenu,QAction,QFileDialog,QDockWidget
+from PyQt5.QtWidgets import QMainWindow,QApplication,QMenu,QAction,QFileDialog,QDockWidget,QMessageBox
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from ViewWidget import ViewWidget
@@ -22,35 +22,48 @@ class MainWindow(QMainWindow):
         self.addDockWidget((Qt.LeftDockWidgetArea or Qt.RightDockWidgetArea or Qt.TopDockWidgetArea or Qt.BottomDockWidgetArea), self.DiffDock)
 
         self.statusBar()
+        self.initAction()
         self.initMenu()
         self.initToolBar()
         self.Alg = MyAlg()
 
+    def initAction(self):
+        self.anaAct = QAction('开始比较', self)
+        self.anaAct.setShortcut('Ctrl+A')
+        self.anaAct.setStatusTip("开始比较")
+        self.anaAct.triggered.connect(self.beginAna)
+        
+        self.openOldAct = QAction('打开旧文件', self)
+        self.openOldAct.setShortcut('Ctrl+O')
+        self.openOldAct.setStatusTip("打开旧版文件用于比较")
+        self.openOldAct.triggered.connect(self.openOldFile)
+        
+        self.openNewAct = QAction('打开新文件', self)
+        self.openNewAct.setShortcut('Ctrl+N')
+        self.openNewAct.setStatusTip("打开新的文件用于比较")
+        self.openNewAct.triggered.connect(self.openNewFile)
+
+
     def initToolBar(self):
-        anaAct = QAction(QIcon('ana.ico'), 'Exit', self)
-        anaAct.setShortcut('Ctrl+A')
-        anaAct.setToolTip("开始比较")
-        anaAct.triggered.connect(self.beginAna)
-       
-        self.toolbar = self.addToolBar('ana')
-        self.toolbar.addAction(anaAct)
+        self.toolbar = self.addToolBar('tool')
+
+        self.toolbar.addAction(self.anaAct)
+        self.toolbar.addAction(self.openOldAct)
+        self.toolbar.addAction(self.openNewAct)
 
     def initMenu(self):
         menubar = self.menuBar()
+
         fileMenu = menubar.addMenu('文件')
+        anaMenu = menubar.addMenu('比较')
+
         openMenu = QMenu('打开', self)
-
-        openOldAct = QAction('打开旧文件', self)
-        openOldAct.setStatusTip("打开旧版文件用于比较")
-        openOldAct.triggered.connect(self.openOldFile)
-        
-        openNewAct = QAction('打开新文件', self)  
-        openNewAct.setStatusTip("打开新的文件用于比较")
-        openNewAct.triggered.connect(self.openNewFile)
-
-        openMenu.addAction(openOldAct)
-        openMenu.addAction(openNewAct)
+        openMenu.addAction(self.openOldAct)
+        openMenu.addAction(self.openNewAct)
         fileMenu.addMenu(openMenu)
+
+        anaMenu.addAction(self.anaAct)
+        
 
 
 
@@ -67,14 +80,21 @@ class MainWindow(QMainWindow):
             self.CentralWidget.setNewTable(self.NewXlsx.SheetDatas)
 
     def beginAna(self):
+        
         oi = self.CentralWidget.OldTableWidget.currentIndex()
         ni = self.CentralWidget.NewTableWidget.currentIndex()
-
+        if oi == -1 or ni ==-1:
+            QMessageBox.warning(self, "提示", "请先打开Excel！", QMessageBox.Ok)
+            return
+        reply = QMessageBox.warning(self, "确定比较吗？", "将要比较 "+self.OldXlsx.SheetDatas[oi]["name"]+" 和 "+self.NewXlsx.SheetDatas[ni]["name"], QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
+        if reply == QMessageBox.No:
+            return
         self.Alg.setOldData(self.OldXlsx.SheetDatas[oi])
         self.Alg.setNewData(self.NewXlsx.SheetDatas[ni])
         self.SheetDiff = self.Alg.getSheetdiff()
-        print(self.SheetDiff)
+        # print(self.SheetDiff)
         self.DiffWidget.setData(self.SheetDiff)
+        self.CentralWidget.setColor(self.SheetDiff)
 
 if __name__=="__main__":
 
