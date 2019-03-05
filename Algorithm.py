@@ -4,6 +4,52 @@ import hashlib
 
 
 class MyAlg:
+    def lcs(self,a, b, lena, lenb):
+        c = [[0 for i in range(lenb+1)] for j in range(lena+1)]
+        for i in range(lena):
+            for j in range(lenb):
+                if a[i] == b[j]:
+                    c[i+1][j+1] = c[i][j]+1
+                elif c[i+1][j] > c[i][j+1]:
+                    c[i+1][j+1] = c[i+1][j]
+                else:
+                    c[i+1][j+1] = c[i][j+1]
+        return c[lena][lenb]
+
+    def binary_search(self,num):
+        start = 0
+        end = len(self.LIS) - 1
+
+        if self.LIS[0] > num:
+            return 0
+
+        while end-start>1:
+            middle = (start+end)/2
+
+            if self.LIS[middle] > num:
+                end = middle
+            elif self.LIS[middle] < num:
+                start = middle
+            else:
+                return middle
+
+        return end
+
+
+    def lis(self, nums):
+
+        if len(nums) == 0:
+            return 0
+        self.LIS = [nums[0]]
+        for i in range(1,len(nums)):
+            num = nums[i]
+            if num > self.LIS[-1]:
+                self.LIS.append(num)
+            else:
+                index = self.binary_search(num)
+                self.LIS[index] = num
+        return self.LIS
+
     def intToABC(self, n):
         d = {}
         r = []
@@ -158,17 +204,7 @@ class MyAlg:
 
         # 计算增删的列
         # 最长公共子序列， 有时间将修改成 O(ND)的算法
-        def lcs(a, b, lena, lenb):
-            c = [[0 for i in range(lenb+1)] for j in range(lena+1)]
-            for i in range(lena):
-                for j in range(lenb):
-                    if a[i] == b[j]:
-                        c[i+1][j+1] = c[i][j]+1
-                    elif c[i+1][j] > c[i][j+1]:
-                        c[i+1][j+1] = c[i+1][j]
-                    else:
-                        c[i+1][j+1] = c[i][j+1]
-            return c[lena][lenb]
+        
 
         diff["add_col"] = []
         diff["del_col"] = []
@@ -183,7 +219,7 @@ class MyAlg:
             for j, oli in enumerate(col_oldhash):
                 lena = len(nli)
                 lenb = len(oli)
-                num = float(lcs(nli, oli, lena, lenb))
+                num = float(self.lcs(nli, oli, lena, lenb))
                 if num/lena > curP and col_vis[j] == 0:
                     curP = num/lena
                     curIndex = j
@@ -236,7 +272,7 @@ class MyAlg:
             for j, oli in enumerate(row_oldhash):
                 lena = len(nli)
                 lenb = len(oli)
-                num = float(lcs(nli, oli, lena, lenb))
+                num = float(self.lcs(nli, oli, lena, lenb))
                 if num/lena > curP and row_vis[j] == 0:
                     curP = num/lena
                     curIndex = j
@@ -269,4 +305,24 @@ class MyAlg:
                             diff["change_cell"].append([(row+1, self.intToABC(
                                 col+1)), (i+1, self.intToABC(j+1)), (olddata[row][col], newdata[i][j])])
 
+        tmp = []
+        for i in col_mp:
+            if i != -1:
+                tmp.append(i)
+        collis = self.lis(tmp)
+        diff["col_exchange"] = []
+        for i,j in enumerate(col_mp):
+            if j != -1 and j not in collis:
+                diff["col_exchange"].append((self.intToABC(j+1),self.intToABC(i+1)))
+        tmp = []
+        for i in col_mp:
+            if i != -1:
+                tmp.append(i)
+        rowlis = self.lis(tmp)
+        diff["row_exchange"] = []
+        for i,j in enumerate(row_mp):
+            if j != -1 and j not in rowlis:
+                diff["row_exchange"].append((j+1,i+1))
+            
+        print(diff)
         return diff

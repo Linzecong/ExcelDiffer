@@ -1,5 +1,6 @@
 #-*- codingg:utf8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout,QAbstractItemView
+from PyQt5.QtGui import QFont
 import sys
 import xlrd
 class ExcelWidget(QTabWidget):
