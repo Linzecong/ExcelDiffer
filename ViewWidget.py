@@ -1,6 +1,7 @@
 #-*- codingg:utf8 -*-
-from PyQt5.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout
+from PyQt5.QtWidgets import QWidget,QSplitter, QMainWindow, QApplication, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout
 from PyQt5.QtGui import QBrush,QColor
+from PyQt5.QtCore import Qt
 import sys
 from ExcelWidget import ExcelWidget
  
@@ -11,8 +12,11 @@ class ViewWidget(QWidget):
         self.OldTableWidget = ExcelWidget()
         self.NewTableWidget = ExcelWidget()
         self.MainLayout = QHBoxLayout()
-        self.MainLayout.addWidget(self.OldTableWidget)
-        self.MainLayout.addWidget(self.NewTableWidget)
+        self.Splitter = QSplitter(Qt.Horizontal)
+        self.Splitter.addWidget(self.OldTableWidget)
+        self.Splitter.addWidget(self.NewTableWidget)
+
+        self.MainLayout.addWidget(self.Splitter)
         self.setLayout(self.MainLayout)
     
     def setOldTable(self,data):
