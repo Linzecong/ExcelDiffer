@@ -35,7 +35,7 @@ class ExcelWidget(QTabWidget):
         
         for sheet in data:
             tableWidget = QTableWidget()
-            tableWidget.setStyleSheet("selection-background-color: #909399");
+            tableWidget.setStyleSheet("selection-background-color: #DCDFE6");
             hlable = []
             vlable = []
             for i in range(sheet["col"]):

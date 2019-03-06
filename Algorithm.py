@@ -24,7 +24,7 @@ class MyAlg:
             return 0
 
         while end-start>1:
-            middle = (start+end)/2
+            middle = int((start+end)/2)
 
             if self.LIS[middle] > num:
                 end = middle
@@ -219,6 +219,8 @@ class MyAlg:
             for j, oli in enumerate(col_oldhash):
                 lena = len(nli)
                 lenb = len(oli)
+                if lena == 0 or lenb == 0:
+                    break;
                 num = float(self.lcs(nli, oli, lena, lenb))
                 if num/lena > curP and col_vis[j] == 0:
                     curP = num/lena
@@ -251,7 +253,7 @@ class MyAlg:
                     li.append(olddata[i][j])
             row_oldhash.append(getListHash(li, len(li)))
 
-        # 将新表的每一列进行hash
+        # 将新表的每一行进行hash
         row_newhash = []
         for i in range(rown):
             li = []
@@ -272,7 +274,11 @@ class MyAlg:
             for j, oli in enumerate(row_oldhash):
                 lena = len(nli)
                 lenb = len(oli)
+                if lena == 0 or lenb == 0:
+                    break;
                 num = float(self.lcs(nli, oli, lena, lenb))
+                if lena ==0:
+                    print(nli,i)
                 if num/lena > curP and row_vis[j] == 0:
                     curP = num/lena
                     curIndex = j
@@ -314,10 +320,12 @@ class MyAlg:
         for i,j in enumerate(col_mp):
             if j != -1 and j not in collis:
                 diff["col_exchange"].append((self.intToABC(j+1),self.intToABC(i+1)))
+
         tmp = []
-        for i in col_mp:
+        for i in row_mp:
             if i != -1:
                 tmp.append(i)
+        print(tmp)
         rowlis = self.lis(tmp)
         diff["row_exchange"] = []
         for i,j in enumerate(row_mp):

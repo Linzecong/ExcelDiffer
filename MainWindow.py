@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon,QFont,QKeySequence
 from PyQt5.QtCore import Qt,QSettings
 from ViewWidget import ViewWidget
 from DiffWidget import RowDiffWidget,CellDiffWidget,ColDiffWidget
+from ChangeColorWidget import ChangeColorWidget
 from Model import MyXlsx
 from Algorithm import MyAlg
 import sys,math,hashlib
@@ -11,8 +12,11 @@ import sys,math,hashlib
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow,self).__init__()
-        
+        self.setWindowTitle("ExcelDiffer")
+        self.IsAna = False
         self.currentFont = self.font()
+        self.initFont = self.font()
+        self.ps = self.initFont.pointSize()
         self.CentralWidget = ViewWidget()
         self.setCentralWidget(self.CentralWidget)
 
@@ -24,7 +28,7 @@ class MainWindow(QMainWindow):
         self.RowDiffDock.setObjectName("rowdiff")
         self.RowDiffWidget.RowAddListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(1,"add_row",self.RowDiffWidget.RowAddListWidget.currentRow()))
         self.RowDiffWidget.RowDelListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(0,"del_row",self.RowDiffWidget.RowDelListWidget.currentRow()))
-        self.RowDiffWidget.RowExcListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(0,"row_exchange",self.RowDiffWidget.RowDelListWidget.currentRow()))
+        self.RowDiffWidget.RowExcListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(0,"row_exchange",self.RowDiffWidget.RowExcListWidget.currentRow()))
         
         self.addDockWidget(Qt.LeftDockWidgetArea, self.RowDiffDock)
 
@@ -39,7 +43,7 @@ class MainWindow(QMainWindow):
         self.ColDiffDock.setObjectName("coldiff")
         self.ColDiffWidget.ColAddListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(1,"add_col",self.ColDiffWidget.ColAddListWidget.currentRow()))
         self.ColDiffWidget.ColDelListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(0,"del_col",self.ColDiffWidget.ColDelListWidget.currentRow()))
-        self.ColDiffWidget.ColExcListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(0,"col_exchange",self.ColDiffWidget.ColDelListWidget.currentRow()))
+        self.ColDiffWidget.ColExcListWidget.clicked.connect(lambda:self.CentralWidget.setHighLight(0,"col_exchange",self.ColDiffWidget.ColExcListWidget.currentRow()))
         self.addDockWidget(Qt.LeftDockWidgetArea, self.ColDiffDock)
 
         self.CellDiffWidget = CellDiffWidget()
@@ -57,30 +61,65 @@ class MainWindow(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
-        self.Settings = QSettings("ExcelDiffer", "ExcelDifferInit");
-        self.Settings.setValue("geometry", self.saveGeometry());
-        self.Settings.setValue("windowState", self.saveState());
+
+        self.WinSettings = QSettings("ExcelDiffer", "ExcelDifferInit");
+        self.WinSettings.setValue("geometry", self.saveGeometry());
+        self.WinSettings.setValue("windowState", self.saveState());
+
         
+        self.ColorSettings = QSettings("ExcelDiffer", "Color");
+        if self.ColorSettings.contains("hightlight") == False:
+            self.ColorSettings.setValue("hightlight", "#909399");
+            self.ColorSettings.setValue("background", "#FFFFFF");
+            self.ColorSettings.setValue("exchange", "#EBEEF5");
+            self.ColorSettings.setValue("add", "#409EFF");
+            self.ColorSettings.setValue("delcolor", "#F56C6C");
+            self.ColorSettings.setValue("change", "#E6A23C");
         self.statusBar()
         self.initAction()
         self.initMenu()
         self.initToolBar()
         self.Alg = MyAlg()
     
-    def restoreToSetting(self):
-        self.Settings = QSettings("ExcelDiffer", "ExcelDiffer");
-        self.restoreGeometry(self.Settings.value("geometry"));
-        self.restoreState(self.Settings.value("windowState"));
+    def restoreToWinSetting(self):
+        reply = QMessageBox.warning(self, "确定恢复上次保存的窗口布局吗？", "确定恢复上次保存的窗口布局吗？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
+        if reply == QMessageBox.No:
+            return
+        self.WinSettings = QSettings("ExcelDiffer", "ExcelDiffer");
+        self.restoreGeometry(self.WinSettings.value("geometry"));
+        self.restoreState(self.WinSettings.value("windowState"));
 
-    def saveToSetting(self):
-        self.Settings = QSettings("ExcelDiffer", "ExcelDiffer");
-        self.Settings.setValue("geometry", self.saveGeometry());
-        self.Settings.setValue("windowState", self.saveState());
+    def saveToWinSetting(self):
+        self.WinSettings = QSettings("ExcelDiffer", "ExcelDiffer");
+        self.WinSettings.setValue("geometry", self.saveGeometry());
+        self.WinSettings.setValue("windowState", self.saveState());
     
-    def restoreToInit(self):
-        self.Settings = QSettings("ExcelDiffer", "ExcelDifferInit");
-        self.restoreGeometry(self.Settings.value("geometry"));
-        self.restoreState(self.Settings.value("windowState"));
+    def restoreToWinInit(self):
+        reply = QMessageBox.warning(self, "确定恢复默认吗？", "确认将窗口恢复默认吗？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
+        if reply == QMessageBox.No:
+            return
+        self.WinSettings = QSettings("ExcelDiffer", "ExcelDifferInit");
+        self.restoreGeometry(self.WinSettings.value("geometry"));
+        self.restoreState(self.WinSettings.value("windowState"));
+
+    def chooseColor(self):
+        self.CW = ChangeColorWidget()
+        self.CW.exec_()
+        
+    
+    def restoreToColorInit(self):
+        reply = QMessageBox.warning(self, "确定恢复默认颜色吗？", "确定恢复默认颜色吗？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
+        if reply == QMessageBox.No:
+            return
+        self.ColorSettings = QSettings("ExcelDiffer", "Color");
+        self.ColorSettings.setValue("hightlight", "#909399");
+        self.ColorSettings.setValue("background", "#FFFFFF");
+        self.ColorSettings.setValue("exchange", "#EBEEF5");
+        self.ColorSettings.setValue("add", "#409EFF");
+        self.ColorSettings.setValue("delcolor", "#F56C6C");
+        self.ColorSettings.setValue("change", "#E6A23C");
+
+        QMessageBox.information(self, "提示", "恢复成功，请重新比较", QMessageBox.Yes);
 
 
     def initAction(self):
@@ -111,15 +150,15 @@ class MainWindow(QMainWindow):
 
         self.saveWinAct = QAction('保存当前窗口状态', self)
         self.saveWinAct.setStatusTip("保存当前窗口状态")
-        self.saveWinAct.triggered.connect(self.saveToSetting)
+        self.saveWinAct.triggered.connect(self.saveToWinSetting)
 
         self.restoreWinAct = QAction('读取窗口状态', self)
         self.restoreWinAct.setStatusTip("读取窗口状态")
-        self.restoreWinAct.triggered.connect(self.restoreToSetting)
+        self.restoreWinAct.triggered.connect(self.restoreToWinSetting)
 
         self.restoreInitWinAct = QAction('恢复默认窗口状态', self)
         self.restoreInitWinAct.setStatusTip("恢复默认窗口状态")
-        self.restoreInitWinAct.triggered.connect(self.restoreToInit)
+        self.restoreInitWinAct.triggered.connect(self.restoreToWinInit)
 
 
         self.zoomInAct = QAction('增加字体大小', self)
@@ -135,6 +174,20 @@ class MainWindow(QMainWindow):
         self.chooseFontAct = QAction('选择表格字体', self)
         self.chooseFontAct.setStatusTip("选择表格字体")
         self.chooseFontAct.triggered.connect(self.chooseFont)
+
+        self.restoreFontAct = QAction('恢复默认字体', self)
+        self.restoreFontAct.setStatusTip("恢复默认字体")
+        self.restoreFontAct.triggered.connect(lambda : self.initFont.setPointSize(self.ps) or self.setTableFont(self.initFont))
+
+        self.chooseColorAct = QAction('更改颜色', self)
+        self.chooseColorAct.setStatusTip("更改表格颜色设置")
+        self.chooseColorAct.triggered.connect(self.chooseColor)
+
+        self.restoreColorAct = QAction('恢复默认颜色', self)
+        self.restoreColorAct.setStatusTip("更改表格颜色设置")
+        self.restoreColorAct.triggered.connect(self.restoreToColorInit)
+
+
     
     def chooseFont(self):
         a = QFontDialog.getFont(self.currentFont,self)
@@ -175,8 +228,19 @@ class MainWindow(QMainWindow):
         self.toolbar = self.addToolBar('tool')
         self.toolbar.setObjectName("toolbar")
         self.toolbar.addAction(self.anaAct)
+        self.toolbar.addSeparator()
         self.toolbar.addAction(self.openOldAct)
         self.toolbar.addAction(self.openNewAct)
+
+        self.CentralWidget.toolbar.addAction(self.zoomInAct)
+        self.CentralWidget.toolbar.addAction(self.zoomOutAct)
+        self.CentralWidget.toolbar.addAction(self.chooseFontAct)
+        self.CentralWidget.toolbar.addAction(self.restoreFontAct)
+        self.CentralWidget.toolbar.addSeparator()
+        self.CentralWidget.toolbar.addAction(self.chooseColorAct)
+        self.CentralWidget.toolbar.addAction(self.restoreColorAct)
+        self.CentralWidget.toolbar.addSeparator()
+        self.CentralWidget.toolbar.addAction(self.CentralWidget.UnlockAction)
 
     def initMenu(self):
         menubar = self.menuBar()
@@ -205,7 +269,10 @@ class MainWindow(QMainWindow):
         formatMenu.addAction(self.zoomOutAct)
         formatMenu.addSeparator()
         formatMenu.addAction(self.chooseFontAct)
-
+        formatMenu.addAction(self.restoreFontAct)
+        formatMenu.addSeparator()
+        formatMenu.addAction(self.chooseColorAct)
+        formatMenu.addAction(self.restoreColorAct)
 
     def openOldFile(self):
         fname = QFileDialog.getOpenFileName(self, '打开旧文件')
@@ -215,6 +282,7 @@ class MainWindow(QMainWindow):
             self.CellDiffWidget.clear()
             self.RowDiffWidget.clear()
             self.ColDiffWidget.clear()
+            self.IsAna = False
 
     def openNewFile(self):
         fname = QFileDialog.getOpenFileName(self, '打开新文件')
@@ -224,6 +292,7 @@ class MainWindow(QMainWindow):
             self.CellDiffWidget.clear()
             self.RowDiffWidget.clear()
             self.ColDiffWidget.clear()
+            self.IsAna = False
 
     def beginAna(self):
         
@@ -243,6 +312,7 @@ class MainWindow(QMainWindow):
         self.ColDiffWidget.setData(self.SheetDiff)
         self.CellDiffWidget.setData(self.SheetDiff)
         self.CentralWidget.setColor(self.SheetDiff)
+        self.IsAna = True
 
 if __name__=="__main__":
 

@@ -6,10 +6,9 @@ class MyXlsx:
         self.ExcelFile=xlrd.open_workbook(file)
         self.ExcelSheetNames=self.ExcelFile.sheet_names()
         self.ExcelSheets = self.ExcelFile.sheets()
-       
-        
+        self.SheetDatas = []
         for sheet in self.ExcelSheets:
-            self.SheetDatas = []   
+            
             rows = sheet.nrows
             cols = sheet.ncols
             data = {}
