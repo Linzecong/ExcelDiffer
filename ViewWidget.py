@@ -1,6 +1,6 @@
 #-*- codingg:utf8 -*-
 from PyQt5.QtWidgets import QWidget,QAction, QSplitter, QMainWindow, QApplication, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout
-from PyQt5.QtGui import QBrush,QColor
+from PyQt5.QtGui import QBrush,QColor,QIcon
 from PyQt5.QtCore import Qt,QSettings
 import sys
 from ExcelWidget import ExcelWidget
@@ -48,11 +48,11 @@ class ViewWidget(QMainWindow):
         
 
     def initAction(self):
-        self.LockAction = QAction("锁定",self)
+        self.LockAction = QAction(QIcon("icon/lock.png"),"锁定",self)
         self.LockAction.setStatusTip("锁定表格，使得切换标签页时，新旧两个表格同步")
         self.LockAction.triggered.connect(self.lockTab)
 
-        self.UnlockAction = QAction("解锁",self)
+        self.UnlockAction = QAction(QIcon("icon/unlock.png"),"解锁",self)
         self.UnlockAction.setStatusTip("解锁表格，使得切换标签页时，新旧两个表格不会同步")
         self.UnlockAction.triggered.connect(self.unlockTab)
 
@@ -186,9 +186,11 @@ class ViewWidget(QMainWindow):
         for i in range(self.NewTableWidget.TableWidgets[ni].rowCount()):
             for j in range(self.NewTableWidget.TableWidgets[ni].columnCount()):
                 self.NewTableWidget.TableWidgets[ni].item(i,j).setBackground(QBrush(QColor(background)))
+                self.NewTableWidget.TableWidgets[ni].item(i,j).setForeground(QBrush(QColor("#000000")))
         for i in range(self.OldTableWidget.TableWidgets[oi].rowCount()):
             for j in range(self.OldTableWidget.TableWidgets[oi].columnCount()):
                 self.OldTableWidget.TableWidgets[oi].item(i,j).setBackground(QBrush(QColor(background)))
+                self.OldTableWidget.TableWidgets[oi].item(i,j).setForeground(QBrush(QColor("#000000")))
 
         for i in diff["row_exchange"]:
             for j in range(self.OldTableWidget.TableWidgets[oi].columnCount()):

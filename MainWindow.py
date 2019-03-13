@@ -13,6 +13,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow,self).__init__()
         self.setWindowTitle("ExcelDiffer")
+        self.qss = True
         self.IsAna = False
         self.currentFont = self.font()
         self.initFont = self.font()
@@ -123,17 +124,17 @@ class MainWindow(QMainWindow):
 
 
     def initAction(self):
-        self.anaAct = QAction('开始比较', self)
+        self.anaAct = QAction(QIcon("icon/ana.png"),'开始比较', self)
         self.anaAct.setShortcut('Ctrl+A')
         self.anaAct.setStatusTip("开始比较")
         self.anaAct.triggered.connect(self.beginAna)
 
-        self.openOldAct = QAction('打开旧文件', self)
+        self.openOldAct = QAction(QIcon("icon/openold.ico"),'打开旧文件', self)
         self.openOldAct.setShortcut('Ctrl+O')
         self.openOldAct.setStatusTip("打开旧版文件用于比较")
         self.openOldAct.triggered.connect(self.openOldFile)
         
-        self.openNewAct = QAction('打开新文件', self)
+        self.openNewAct = QAction(QIcon("icon/opennew.ico"),'打开新文件', self)
         self.openNewAct.setShortcut('Ctrl+N')
         self.openNewAct.setStatusTip("打开新的文件用于比较")
         self.openNewAct.triggered.connect(self.openNewFile)
@@ -161,34 +162,46 @@ class MainWindow(QMainWindow):
         self.restoreInitWinAct.triggered.connect(self.restoreToWinInit)
 
 
-        self.zoomInAct = QAction('增加字体大小', self)
+        self.zoomInAct = QAction(QIcon("icon/zoom-in.png"),'增加字体大小', self)
         self.zoomInAct.setShortcut(QKeySequence.ZoomIn)
         self.zoomInAct.setStatusTip("增加字体大小")
         self.zoomInAct.triggered.connect(self.zoomIn)
         
-        self.zoomOutAct = QAction('减少字体大小', self)
+        self.zoomOutAct = QAction(QIcon("icon/zoom-out.png"),'减少字体大小', self)
         self.zoomOutAct.setShortcut(QKeySequence.ZoomOut)
         self.zoomOutAct.setStatusTip("减少字体大小")
         self.zoomOutAct.triggered.connect(self.zoomOut)
 
-        self.chooseFontAct = QAction('选择表格字体', self)
+        self.chooseFontAct = QAction(QIcon("icon/chafont.png"),'选择表格字体', self)
         self.chooseFontAct.setStatusTip("选择表格字体")
         self.chooseFontAct.triggered.connect(self.chooseFont)
 
-        self.restoreFontAct = QAction('恢复默认字体', self)
+        self.restoreFontAct = QAction(QIcon("icon/refont.png"),'恢复默认字体', self)
         self.restoreFontAct.setStatusTip("恢复默认字体")
         self.restoreFontAct.triggered.connect(lambda : self.initFont.setPointSize(self.ps) or self.setTableFont(self.initFont))
 
-        self.chooseColorAct = QAction('更改颜色', self)
+        self.chooseColorAct = QAction(QIcon("icon/chacol.png"),'更改颜色', self)
         self.chooseColorAct.setStatusTip("更改表格颜色设置")
         self.chooseColorAct.triggered.connect(self.chooseColor)
 
-        self.restoreColorAct = QAction('恢复默认颜色', self)
+        self.restoreColorAct = QAction(QIcon("icon/recol.png"),'恢复默认颜色', self)
         self.restoreColorAct.setStatusTip("更改表格颜色设置")
         self.restoreColorAct.triggered.connect(self.restoreToColorInit)
 
+        self.qssAct = QAction('切换背景', self)
+        self.qssAct.setStatusTip("在白天模式和夜间模式切换")
+        self.qssAct.triggered.connect(self.changeQSS)
 
-    
+
+    def changeQSS(self):
+        if self.qss == True:
+            f = open('style.qss', 'r')
+            self.setStyleSheet(f.read())
+            self.qss = False
+        else:
+            self.setStyleSheet("")
+            self.qss = True
+
     def chooseFont(self):
         a = QFontDialog.getFont(self.currentFont,self)
         if a[1]:
@@ -249,6 +262,9 @@ class MainWindow(QMainWindow):
         anaMenu = menubar.addMenu('比较')
         winMenu = menubar.addMenu('窗口')
         formatMenu = menubar.addMenu('格式')
+
+        nightMenu = menubar.addMenu('切换模式')
+        nightMenu.addAction(self.qssAct)
 
         openMenu = QMenu('打开', self)
         openMenu.addAction(self.openOldAct)
@@ -318,5 +334,6 @@ if __name__=="__main__":
 
     app = QApplication(sys.argv)
     main = MainWindow()
+
     main.show()
     sys.exit(app.exec_())

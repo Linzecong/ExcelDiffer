@@ -1,6 +1,7 @@
 import xlrd
 import math
 import hashlib
+import datetime
 
 
 class MyAlg:
@@ -95,7 +96,7 @@ class MyAlg:
                 
             self.OldData["data"].append(rowdata)
 
-        print(self.OldData)
+        # print(self.OldData)
 
     def setNewData(self, data):
         self.NewData = dict()
@@ -114,7 +115,7 @@ class MyAlg:
                     rowdata.append(data["data"][i][j].value)
             self.NewData["data"].append(rowdata)
 
-        print(self.NewData)
+        # print(self.NewData)
 
     def getSheetdiff(self):
         """
@@ -133,8 +134,11 @@ class MyAlg:
           暴力比较每一个元素，找到更改的单元格（合并的单元格不作考虑）。复杂度O(N^2)
         """
 
+        lt = datetime.datetime.now()
+        print("begin diff!")
+
         diff = dict()
-        # 计算新增的合并单元格 O(N^2)
+        # 计算新增的合并单元格 O(改动数量^2)
         diff["new_merge"] = []
         newmerge = self.NewData["merged"]
         oldmerge = self.OldData["merged"]
@@ -148,7 +152,11 @@ class MyAlg:
             if flag is False:
                 diff["new_merge"].append(nrec)
 
-        # 计算删去的合并单元格 O(N^2)
+        ct = datetime.datetime.now()
+        print("cal_new_merge_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
+
+        # 计算删去的合并单元格 O(改动数量^2)
         diff["del_merge"] = []
         for orec in oldmerge:
             flag = False
@@ -159,28 +167,11 @@ class MyAlg:
             if flag is False:
                 diff["del_merge"].append(orec)
 
-        # 将列表hash
-        def getListHash(li, N):
-            return li
-            # if(N < 100):
-            #     return li
-            # else:
-            #     ans = []
-            #     SN = int(math.sqrt(N))
-            #     i = 0
-            #     while i < N:
-            #         S = ""
-            #         for j in range(SN):
-            #             if i+j >= N:
-            #                 break
-            #             else:
-            #                 S = S + str(li[i+j])
-            #         ans.append(hashlib.md5(
-            #             S.encode(encoding='UTF-8')).hexdigest()[0:16])
-            #         i += SN
-            #     return ans
+        ct = datetime.datetime.now()
+        print("cal_del_merge_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
 
-        # 将旧表的每一列进行hash
+        # 将旧表的每一列进行hash  相当于转置 O(N*M)
         olddata = self.OldData["data"]
         colo = self.OldData["col"]
         rowo = self.OldData["row"]
@@ -189,9 +180,9 @@ class MyAlg:
             li = []
             for i in range(rowo):
                 li.append(olddata[i][j])
-            col_oldhash.append(getListHash(li, rowo))
+            col_oldhash.append(li)
 
-        # 将新表的每一列进行hash
+        # 将新表的每一列进行hash 相当于转置 O(N*M)
         newdata = self.NewData["data"]
         coln = self.NewData["col"]
         rown = self.NewData["row"]
@@ -200,16 +191,19 @@ class MyAlg:
             li = []
             for i in range(rown):
                 li.append(newdata[i][j])
-            col_newhash.append(getListHash(li, rown))
+            col_newhash.append(li)
+
+        ct = datetime.datetime.now()
+        print("cal_col_hash_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
 
         # 计算增删的列
         # 最长公共子序列， 有时间将修改成 O(ND)的算法
         
-
         diff["add_col"] = []
         diff["del_col"] = []
-        YZ = 0.5 #匹配成功的阈值 0~1越高精准度越高，
-        PP = 0.8 #用于不用跑完全部行，加速比较
+        YZ = 0.2 #匹配成功的阈值 0~1越高精准度越高，
+        PP = 0.4 #用于不用跑完全部行，加速比较
         col_mp = [-1]*coln  # 列对应 新 -> 旧
         col_vis = [0]*colo  # 旧中已匹配的列
 
@@ -234,6 +228,7 @@ class MyAlg:
             if curP >= YZ:
                 col_mp[i] = curIndex
                 col_vis[curIndex] = 1
+
         # print(col_mp, col_vis)
         for i, item in enumerate(col_mp):
             if item == -1:
@@ -243,6 +238,10 @@ class MyAlg:
             if item == 0:
                 diff["del_col"].append(self.intToABC(i+1))
 
+        ct = datetime.datetime.now()
+        print("cal_col_add_del_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
+
         # 根据列对应，生成新的行
         # 将旧表的每一行进行hash
         row_oldhash = []
@@ -251,7 +250,7 @@ class MyAlg:
             for j in col_mp:
                 if j != -1:
                     li.append(olddata[i][j])
-            row_oldhash.append(getListHash(li, len(li)))
+            row_oldhash.append(li)
 
         # 将新表的每一行进行hash
         row_newhash = []
@@ -260,7 +259,11 @@ class MyAlg:
             for j, item in enumerate(col_mp):
                 if item != -1:
                     li.append(newdata[i][j])
-            row_newhash.append(getListHash(li, len(li)))
+            row_newhash.append(li)
+
+        ct = datetime.datetime.now()
+        print("cal_row_hash_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
 
         # 计算增删的行
         diff["add_row"] = []
@@ -299,6 +302,10 @@ class MyAlg:
             if item == 0:
                 diff["del_row"].append(i+1)
 
+        ct = datetime.datetime.now()
+        print("cal_row_add_del_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
+
         # 计算修改的单元格（根据行列的对应表计算）
         # [(old_row,old_col),(new_col,new_row),(olddata,newdata)]
         diff["change_cell"] = []
@@ -311,6 +318,10 @@ class MyAlg:
                             diff["change_cell"].append([(row+1, self.intToABC(
                                 col+1)), (i+1, self.intToABC(j+1)), (olddata[row][col], newdata[i][j])])
 
+        ct = datetime.datetime.now()
+        print("cal_cell_change_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
+
         tmp = []
         for i in col_mp:
             if i != -1:
@@ -320,6 +331,10 @@ class MyAlg:
         for i,j in enumerate(col_mp):
             if j != -1 and j not in collis:
                 diff["col_exchange"].append((self.intToABC(j+1),self.intToABC(i+1)))
+
+        ct = datetime.datetime.now()
+        print("cal_col_exchange_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
 
         tmp = []
         for i in row_mp:
@@ -331,6 +346,10 @@ class MyAlg:
         for i,j in enumerate(row_mp):
             if j != -1 and j not in rowlis:
                 diff["row_exchange"].append((j+1,i+1))
+
+        ct = datetime.datetime.now()
+        print("cal_row_exchange_done!",(ct-lt).seconds)
+        lt = datetime.datetime.now()
             
         print(diff)
         return diff
