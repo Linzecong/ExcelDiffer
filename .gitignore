@@ -1,3 +1,5 @@
 *.xlsx
 __pycache__
 .pylintrc
+build
+dist

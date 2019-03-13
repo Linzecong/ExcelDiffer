@@ -334,6 +334,6 @@ if __name__=="__main__":
 
     app = QApplication(sys.argv)
     main = MainWindow()
-
+    main.setWindowIcon(QIcon("icon/opennew.ico"))
     main.show()
     sys.exit(app.exec_())
