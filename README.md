@@ -21,29 +21,29 @@ pyinstaller MainWindow.spec
 
 1.先打开需要比较的Excel表格
 
-![image](https://github.com/Linzecong/ExcelDiffer/docimages/openexcel.png)
+![image](https://raw.githubusercontent.com/Linzecong/ExcelDiffer/master/docimage/openexcel.png)
 
 可以在菜单栏打开也可以在工具栏打开
 我们先打开一个旧的Excel表格，然后再打开一个新的Excel表格
 
 2.打开后点击菜单栏或工具栏的开始比较按钮开始Diff
 
-![image](https://github.com/Linzecong/ExcelDiffer/docimages/ana.png)
+![image](https://raw.githubusercontent.com/Linzecong/ExcelDiffer/master/docimage/ana.png)
 
 具体Diff时间见后面算法分析
 
 3.点击列表内的结果可以动态的查看差异
 
-![image](https://github.com/Linzecong/ExcelDiffer/docimages/result.png)
+![image](https://raw.githubusercontent.com/Linzecong/ExcelDiffer/master/docimage/result.png)
 
 4.点击格式菜单或工具栏可以自定义颜色和字体
 
-![image](https://github.com/Linzecong/ExcelDiffer/docimages/font.png)
+![image](https://raw.githubusercontent.com/Linzecong/ExcelDiffer/master/docimage/font.png)
 
 5.点击切换模式可以更改为夜间模式，再次点击可以更改回来
 可以通过修改style.qss文件自定义样式
 
-![image](https://github.com/Linzecong/ExcelDiffer/docimages/night.png)
+![image](https://raw.githubusercontent.com/Linzecong/ExcelDiffer/master/docimage/night.png)
 
 
 # 关于算法
