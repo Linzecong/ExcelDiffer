@@ -2,9 +2,11 @@ import xlrd
 import math
 import hashlib
 import datetime
+from PyQt5.QtCore import QObject,pyqtSignal
 
+class MyAlg(QObject):
+    statueSignal = pyqtSignal(str)
 
-class MyAlg:
     def lcs(self,a, b, lena, lenb):
         c = [[0 for i in range(lenb+1)] for j in range(lena+1)]
         for i in range(lena):
@@ -133,6 +135,7 @@ class MyAlg:
         4.将新增和删去的行和列不做考虑。
           暴力比较每一个元素，找到更改的单元格（合并的单元格不作考虑）。复杂度O(N^2)
         """
+        self.statueSignal.emit("正在分析！   0%")
 
         lt = datetime.datetime.now()
         print("begin diff!")
@@ -156,6 +159,8 @@ class MyAlg:
         print("cal_new_merge_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
 
+        self.statueSignal.emit("正在分析！   2%")
+
         # 计算删去的合并单元格 O(改动数量^2)
         diff["del_merge"] = []
         for orec in oldmerge:
@@ -170,6 +175,8 @@ class MyAlg:
         ct = datetime.datetime.now()
         print("cal_del_merge_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
+
+        self.statueSignal.emit("正在分析！   4%")
 
         # 将旧表的每一列进行hash  相当于转置 O(N*M)
         olddata = self.OldData["data"]
@@ -197,20 +204,29 @@ class MyAlg:
         print("cal_col_hash_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
 
+        self.statueSignal.emit("正在分析！   6%")
+
         # 计算增删的列
         # 最长公共子序列， 有时间将修改成 O(ND)的算法
         
         diff["add_col"] = []
         diff["del_col"] = []
-        YZ = 0.2 #匹配成功的阈值 0~1越高精准度越高，
-        PP = 0.4 #用于不用跑完全部行，加速比较
+        YZ = 0.8 #匹配成功的阈值 0~1越高精准度越高，
+        PP = 0.9 #用于不用跑完全部行，加速比较
         col_mp = [-1]*coln  # 列对应 新 -> 旧
         col_vis = [0]*colo  # 旧中已匹配的列
+
+        totlen = len(col_newhash) * len (col_oldhash)
+        curLen = 0 # 用于显示状态栏消息
+
 
         for i, nli in enumerate(col_newhash):
             curP = 0.0
             curIndex = -1
             for j, oli in enumerate(col_oldhash):
+                curLen = curLen +1
+                self.statueSignal.emit("正在分析列："+str(curLen)+" / "+str(totlen))
+
                 lena = len(nli)
                 lenb = len(oli)
                 if lena == 0 or lenb == 0:
@@ -228,7 +244,7 @@ class MyAlg:
             if curP >= YZ:
                 col_mp[i] = curIndex
                 col_vis[curIndex] = 1
-
+        self.statueSignal.emit("正在分析！   36%")
         # print(col_mp, col_vis)
         for i, item in enumerate(col_mp):
             if item == -1:
@@ -241,6 +257,8 @@ class MyAlg:
         ct = datetime.datetime.now()
         print("cal_col_add_del_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
+
+        self.statueSignal.emit("正在分析！   37%")
 
         # 根据列对应，生成新的行
         # 将旧表的每一行进行hash
@@ -264,17 +282,23 @@ class MyAlg:
         ct = datetime.datetime.now()
         print("cal_row_hash_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
-
+        self.statueSignal.emit("正在分析！   40%")
         # 计算增删的行
         diff["add_row"] = []
         diff["del_row"] = []
         row_mp = [-1]*rown  # 列对应 新 -> 旧
         row_vis = [0]*rowo  # 旧中已匹配的列
 
+        totlen = len(row_newhash) * len (row_oldhash)
+        curLen = 0 # 用于显示状态栏消息
+
         for i, nli in enumerate(row_newhash):
             curP = 0.0
             curIndex = -1
             for j, oli in enumerate(row_oldhash):
+                curLen = curLen +1
+                self.statueSignal.emit("正在分析行："+str(curLen)+" / "+str(totlen))
+
                 lena = len(nli)
                 lenb = len(oli)
                 if lena == 0 or lenb == 0:
@@ -306,6 +330,8 @@ class MyAlg:
         print("cal_row_add_del_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
 
+        self.statueSignal.emit("正在分析！   80%")
+
         # 计算修改的单元格（根据行列的对应表计算）
         # [(old_row,old_col),(new_col,new_row),(olddata,newdata)]
         diff["change_cell"] = []
@@ -322,6 +348,8 @@ class MyAlg:
         print("cal_cell_change_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
 
+        self.statueSignal.emit("正在分析！   90%")
+
         tmp = []
         for i in col_mp:
             if i != -1:
@@ -335,6 +363,8 @@ class MyAlg:
         ct = datetime.datetime.now()
         print("cal_col_exchange_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
+
+        self.statueSignal.emit("正在分析！   92%")
 
         tmp = []
         for i in row_mp:
@@ -350,6 +380,8 @@ class MyAlg:
         ct = datetime.datetime.now()
         print("cal_row_exchange_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
+
+        self.statueSignal.emit("正在分析！   100%")
             
         print(diff)
         return diff

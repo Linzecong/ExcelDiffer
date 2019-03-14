@@ -1,9 +1,11 @@
 #-*- codingg:utf8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout,QAbstractItemView
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import pyqtSignal,QSettings
 import sys
 import xlrd
 class ExcelWidget(QTabWidget):
+    cellClicked = pyqtSignal(int,int)
     def __init__(self):
         super(ExcelWidget,self).__init__()
         self.TableWidgets = []
@@ -32,10 +34,13 @@ class ExcelWidget(QTabWidget):
     def setData(self,data):
         self.clear()
         self.TableWidgets.clear()
-        
+        self.ColorSettings = QSettings("ExcelDiffer", "Color");
+        hightlight = self.ColorSettings.value("hightlight")
         for sheet in data:
             tableWidget = QTableWidget()
-            tableWidget.setStyleSheet("selection-background-color: #DCDFE6;selection-color:black");
+            tableWidget.cellClicked.connect(self.cellClicked.emit)
+
+            tableWidget.setStyleSheet("selection-background-color: "+hightlight+";selection-color:black");
             hlable = []
             vlable = []
             for i in range(sheet["col"]):

@@ -1,17 +1,33 @@
 #-*- codingg:utf8 -*-
 from PyQt5.QtWidgets import QMainWindow,QFontDialog, QApplication,QMenu,QAction,QFileDialog,QDockWidget,QMessageBox,QDesktopWidget,QTableWidget
 from PyQt5.QtGui import QIcon,QFont,QKeySequence
-from PyQt5.QtCore import Qt,QSettings
+from PyQt5.QtCore import Qt,QSettings,QThread,pyqtSignal
 from ViewWidget import ViewWidget
 from DiffWidget import RowDiffWidget,CellDiffWidget,ColDiffWidget
 from ChangeColorWidget import ChangeColorWidget
 from Model import MyXlsx
 from Algorithm import MyAlg
 import sys,math,hashlib
+
+class Thread(QThread):
+
+    done = pyqtSignal(dict)
+
+    def __init__(self,Window):
+        super().__init__()
+        self.window = Window
+        
+
+    def run(self):
+        self.SheetDiff = self.window.Alg.getSheetdiff()
+        self.done.emit(self.SheetDiff)
+        # print(self.SheetDiff)
+        
  
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow,self).__init__()
+        self.isanaing = False #是否在分析
         self.setWindowTitle("ExcelDiffer")
         self.qss = True
         self.IsAna = False
@@ -76,7 +92,7 @@ class MainWindow(QMainWindow):
             self.ColorSettings.setValue("add", "#409EFF");
             self.ColorSettings.setValue("delcolor", "#F56C6C");
             self.ColorSettings.setValue("change", "#E6A23C");
-        self.statusBar()
+        self.bar = self.statusBar()
         self.initAction()
         self.initMenu()
         self.initToolBar()
@@ -311,6 +327,9 @@ class MainWindow(QMainWindow):
             self.IsAna = False
 
     def beginAna(self):
+        if self.isanaing == True:
+            QMessageBox.warning(self, "提示", "正在分析！请稍等！", QMessageBox.Ok)
+            return
         
         oi = self.CentralWidget.OldTableWidget.currentIndex()
         ni = self.CentralWidget.NewTableWidget.currentIndex()
@@ -322,13 +341,23 @@ class MainWindow(QMainWindow):
             return
         self.Alg.setOldData(self.OldXlsx.SheetDatas[oi])
         self.Alg.setNewData(self.NewXlsx.SheetDatas[ni])
-        self.SheetDiff = self.Alg.getSheetdiff()
-        # print(self.SheetDiff)
-        self.RowDiffWidget.setData(self.SheetDiff)
-        self.ColDiffWidget.setData(self.SheetDiff)
-        self.CellDiffWidget.setData(self.SheetDiff)
-        self.CentralWidget.setColor(self.SheetDiff)
+        
+        self.isanaing =True
+        self.Thread = Thread(self)
+        self.Thread.done.connect(self.doneDiff)
+        self.Thread.window.Alg.statueSignal.connect(self.bar.showMessage)
+        
+        self.Thread.start()
+        
+    def doneDiff(self,diff):
+        self.SheetDiff = diff
+        self.RowDiffWidget.setData(diff)
+        self.ColDiffWidget.setData(diff)
+        self.CellDiffWidget.setData(diff)
+        self.CentralWidget.setColor(diff)
         self.IsAna = True
+        self.isanaing =False
+        self.bar.showMessage("分析完毕！")
 
 if __name__=="__main__":
 

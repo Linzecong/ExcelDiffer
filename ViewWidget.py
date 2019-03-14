@@ -20,6 +20,9 @@ class ViewWidget(QMainWindow):
         self.Lock = True
         self.OldTableWidget.currentChanged.connect(lambda x:self.setSame(x,0))
         self.NewTableWidget.currentChanged.connect(lambda x:self.setSame(x,1))
+
+        self.OldTableWidget.cellClicked.connect(lambda x,y:self.setSameCell(x,y,0))
+        self.NewTableWidget.cellClicked.connect(lambda x,y:self.setSameCell(x,y,1))
  
         self.initAction()
         self.initToolbar()
@@ -28,6 +31,14 @@ class ViewWidget(QMainWindow):
 
         # self.MainLayout.addWidget(self.Splitter)
         # self.setLayout(self.MainLayout)
+
+    def setSameCell(self,x,y,type1):
+        if self.Lock == False:
+            return
+        if type1 == 0:
+            self.NewTableWidget.currentWidget().setCurrentCell(x,y)
+        else:
+            self.OldTableWidget.currentWidget().setCurrentCell(x,y)
 
     def setSame(self,id,type1):
         if self.Lock == False:
@@ -96,26 +107,35 @@ class ViewWidget(QMainWindow):
         if widget == 0:
             if difftype == "del_col":
                 col = self.ABCToInt(self.diff[difftype][id])
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(0,col-1)
                 for i in range(self.OldTableWidget.TableWidgets[self.oi].rowCount()):
                     self.OldTableWidget.TableWidgets[self.oi].item(i,col-1).setBackground(QBrush(QColor(hightlight)))
+
             if difftype == "del_row":
                 row = self.diff[difftype][id]
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(row-1,0)
                 for j in range(self.OldTableWidget.TableWidgets[self.oi].columnCount()):
                     self.OldTableWidget.TableWidgets[self.oi].item(row-1,j).setBackground(QBrush(QColor(hightlight)))
             if difftype == "change_cell":
                 rec = self.diff[difftype][id]
                 j = self.ABCToInt(rec[0][1])
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(rec[0][0]-1,j-1)
                 self.OldTableWidget.TableWidgets[self.oi].item(rec[0][0]-1,j-1).setBackground(QBrush(QColor(hightlight)))
                 j = self.ABCToInt(rec[1][1])
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(rec[1][0]-1,j-1)
                 self.NewTableWidget.TableWidgets[self.ni].item(rec[1][0]-1,j-1).setBackground(QBrush(QColor(hightlight)))
+            
             if difftype == "del_merge":
                 rec = self.diff["del_merge"][id]
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(rec[0],rec[2])
                 for i in range(rec[0],rec[1]):
                     for j in range(rec[2],rec[3]):
                         self.OldTableWidget.TableWidgets[self.oi].item(i,j).setBackground(QBrush(QColor(hightlight)))
             
             if difftype == "row_exchange":
                 i = self.diff["row_exchange"][id]
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(i[0]-1,0)
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(i[1]-1,0)
                 for j in range(self.OldTableWidget.TableWidgets[self.oi].columnCount()):
                     self.OldTableWidget.TableWidgets[self.oi].item(i[0]-1,j).setBackground(QBrush(QColor(hightlight)))
                 for j in range(self.NewTableWidget.TableWidgets[self.ni].columnCount()):
@@ -125,6 +145,8 @@ class ViewWidget(QMainWindow):
                 s = self.diff["col_exchange"][id]
                 j1 = self.ABCToInt(s[0])
                 j2 = self.ABCToInt(s[1])
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(0,j1-1)
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(0,j2-1)
                 for i in range(self.OldTableWidget.TableWidgets[self.oi].rowCount()):
                     self.OldTableWidget.TableWidgets[self.oi].item(i,j1-1).setBackground(QBrush(QColor(hightlight)))
                 for i in range(self.NewTableWidget.TableWidgets[self.ni].rowCount()):    
@@ -133,35 +155,44 @@ class ViewWidget(QMainWindow):
         elif widget == 1:
             if difftype == "add_col":
                 col = self.ABCToInt(self.diff[difftype][id])
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(0,col-1)
                 for i in range(self.NewTableWidget.TableWidgets[self.ni].rowCount()):
                     self.NewTableWidget.TableWidgets[self.ni].item(i,col-1).setBackground(QBrush(QColor(hightlight)))
             if difftype == "add_row":
                 row = self.diff[difftype][id]
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(row-1,0)
                 for j in range(self.NewTableWidget.TableWidgets[self.ni].columnCount()):
                     self.NewTableWidget.TableWidgets[self.ni].item(row-1,j).setBackground(QBrush(QColor(hightlight)))
             if difftype == "change_cell":
                 rec = self.diff[difftype][id]
                 j = self.ABCToInt(rec[0][1])
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(rec[0][0]-1,j-1)
                 self.OldTableWidget.TableWidgets[self.oi].item(rec[0][0]-1,j-1).setBackground(QBrush(QColor(hightlight)))
                 j = self.ABCToInt(rec[1][1])
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(rec[1][0]-1,j-1)
                 self.NewTableWidget.TableWidgets[self.ni].item(rec[1][0]-1,j-1).setBackground(QBrush(QColor(hightlight)))
             if difftype == "new_merge":
                 rec = self.diff["new_merge"][id]
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(rec[0],rec[2])
                 for i in range(rec[0],rec[1]):
                     for j in range(rec[2],rec[3]):
                         self.NewTableWidget.TableWidgets[self.ni].item(i,j).setBackground(QBrush(QColor(hightlight)))
             if difftype == "row_exchange":
                 i = self.diff["row_exchange"][id]
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(i[0]-1,0)
                 for j in range(self.OldTableWidget.TableWidgets[self.oi].columnCount()):
                     self.OldTableWidget.TableWidgets[self.oi].item(i[0]-1,j).setBackground(QBrush(QColor(hightlight)))
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(i[1]-1,0)
                 for j in range(self.NewTableWidget.TableWidgets[self.ni].columnCount()):
                     self.NewTableWidget.TableWidgets[self.ni].item(i[1]-1,j).setBackground(QBrush(QColor(hightlight)))
             if difftype == "col_exchange":
                 s = self.diff["col_exchange"][id]
                 j1 = self.ABCToInt(s[0])
                 j2 = self.ABCToInt(s[1])
+                self.OldTableWidget.TableWidgets[self.oi].setCurrentCell(0,j1-1)
                 for i in range(self.OldTableWidget.TableWidgets[self.oi].rowCount()):
                     self.OldTableWidget.TableWidgets[self.oi].item(i,j1-1).setBackground(QBrush(QColor(hightlight)))
+                self.NewTableWidget.TableWidgets[self.ni].setCurrentCell(0,j2-1)    
                 for i in range(self.NewTableWidget.TableWidgets[self.ni].rowCount()):    
                     self.NewTableWidget.TableWidgets[self.ni].item(i,j2-1).setBackground(QBrush(QColor(hightlight)))
         else:
