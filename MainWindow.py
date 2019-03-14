@@ -102,9 +102,12 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.warning(self, "确定恢复上次保存的窗口布局吗？", "确定恢复上次保存的窗口布局吗？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
         if reply == QMessageBox.No:
             return
-        self.WinSettings = QSettings("ExcelDiffer", "ExcelDiffer");
-        self.restoreGeometry(self.WinSettings.value("geometry"));
-        self.restoreState(self.WinSettings.value("windowState"));
+        try:
+            self.WinSettings = QSettings("ExcelDiffer", "ExcelDiffer");
+            self.restoreGeometry(self.WinSettings.value("geometry"));
+            self.restoreState(self.WinSettings.value("windowState"));
+        except:
+            pass
 
     def saveToWinSetting(self):
         self.WinSettings = QSettings("ExcelDiffer", "ExcelDiffer");
@@ -307,7 +310,7 @@ class MainWindow(QMainWindow):
         formatMenu.addAction(self.restoreColorAct)
 
     def openOldFile(self):
-        fname = QFileDialog.getOpenFileName(self, '打开旧文件')
+        fname = QFileDialog.getOpenFileName(self, '打开旧文件',"","Excel(*.xlsx *.xls)")
         if fname[0] != '':
             self.OldXlsx = MyXlsx(fname[0])
             self.CentralWidget.setOldTable(self.OldXlsx.SheetDatas)
@@ -317,7 +320,7 @@ class MainWindow(QMainWindow):
             self.IsAna = False
 
     def openNewFile(self):
-        fname = QFileDialog.getOpenFileName(self, '打开新文件')
+        fname = QFileDialog.getOpenFileName(self, '打开新文件',"","Excel(*.xlsx *.xls)")
         if fname[0] != '':
             self.NewXlsx = MyXlsx(fname[0])
             self.CentralWidget.setNewTable(self.NewXlsx.SheetDatas)

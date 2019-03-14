@@ -6,6 +6,8 @@ from PyQt5.QtCore import QObject,pyqtSignal
 
 class MyAlg(QObject):
     statueSignal = pyqtSignal(str)
+    YZ = 0.5 #匹配成功的阈值 0~1越高精准度越高，
+    PP = 0.8 #用于不用跑完全部行，加速比较 ，PP >= YZ
 
     def lcs(self,a, b, lena, lenb):
         c = [[0 for i in range(lenb+1)] for j in range(lena+1)]
@@ -122,18 +124,6 @@ class MyAlg(QObject):
     def getSheetdiff(self):
         """
         分析表格区别算法
-
-        1.先暴力比较，合并单元格的区别
-        2.通常列少行多，将新表和旧表每一列按照sqrt(N)大小分割，对于每一块进行hash
-          hash后形成的新数组将会有sqrt(N)个元素，然后将新表暴力与旧表的每一列的hash值进行比较
-          如有一半（或阈值）一样的话，代表找到了相同的列，如果都没找到，证明这是一个新加入的列。
-          同理，用旧表与新表比较，找不到，证明这一列被删除了。
-          复杂度O(N*sqrt(N))
-          N<50直接暴力 复杂度 O(N^3)
-        3.我们将匹配度最高的列一一对应起来，然后新增和删去的列不作考虑，然后对行做同样的hash操作
-          然后就能找到新增和删去的行。
-        4.将新增和删去的行和列不做考虑。
-          暴力比较每一个元素，找到更改的单元格（合并的单元格不作考虑）。复杂度O(N^2)
         """
         self.statueSignal.emit("正在分析！   0%")
 
@@ -211,8 +201,9 @@ class MyAlg(QObject):
         
         diff["add_col"] = []
         diff["del_col"] = []
-        YZ = 0.8 #匹配成功的阈值 0~1越高精准度越高，
-        PP = 0.9 #用于不用跑完全部行，加速比较
+
+        
+
         col_mp = [-1]*coln  # 列对应 新 -> 旧
         col_vis = [0]*colo  # 旧中已匹配的列
 
@@ -224,6 +215,8 @@ class MyAlg(QObject):
             curP = 0.0
             curIndex = -1
             for j, oli in enumerate(col_oldhash):
+                if col_vis[j] == 1:
+                    continue
                 curLen = curLen +1
                 self.statueSignal.emit("正在分析列："+str(curLen)+" / "+str(totlen))
 
@@ -238,12 +231,13 @@ class MyAlg(QObject):
                 elif num/lenb > curP and col_vis[j] == 0:
                     curP = num/lenb
                     curIndex = j
-                if curP >= PP: # 剪枝
+                if curP >= self.PP: # 剪枝
                     break
 
-            if curP >= YZ:
+            if curP >= self.YZ:
                 col_mp[i] = curIndex
                 col_vis[curIndex] = 1
+
         self.statueSignal.emit("正在分析！   36%")
         # print(col_mp, col_vis)
         for i, item in enumerate(col_mp):
@@ -296,6 +290,8 @@ class MyAlg(QObject):
             curP = 0.0
             curIndex = -1
             for j, oli in enumerate(row_oldhash):
+                if row_vis[j] == 1:
+                    continue
                 curLen = curLen +1
                 self.statueSignal.emit("正在分析行："+str(curLen)+" / "+str(totlen))
 
@@ -312,9 +308,9 @@ class MyAlg(QObject):
                 elif num/lenb > curP and row_vis[j] == 0:
                     curP = num/lenb
                     curIndex = j
-                if curP >= PP: # 剪枝
+                if curP >= self.PP: # 剪枝
                     break
-            if curP >= YZ:
+            if curP >= self.YZ:
                 row_mp[i] = curIndex
                 row_vis[curIndex] = 1
         # print(row_mp, row_vis)
