@@ -13,16 +13,26 @@ class Thread(QThread):
 
     done = pyqtSignal(dict)
 
-    def __init__(self,Window):
+    def __init__(self,Window,name="###"):
         super().__init__()
         self.window = Window
-        
+        self.name = name
 
     def run(self):
-        self.SheetDiff = self.window.Alg.getSheetdiff()
+        self.SheetDiff = self.window.Alg[self.name].getSheetdiff()
+        self.SheetDiff["diffname"]=self.name
         self.done.emit(self.SheetDiff)
-        # print(self.SheetDiff)
-        
+
+
+class OpenFileThread(QThread):
+
+    def __init__(self,file):
+        super().__init__()
+        self.file = file
+
+    def run(self):
+        self.Xlrd = MyXlsx(self.file)
+
  
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -96,7 +106,8 @@ class MainWindow(QMainWindow):
         self.initAction()
         self.initMenu()
         self.initToolBar()
-        self.Alg = MyAlg()
+        self.Alg = {}
+        self.Alg["###"] = MyAlg()
     
     def restoreToWinSetting(self):
         reply = QMessageBox.warning(self, "确定恢复上次保存的窗口布局吗？", "确定恢复上次保存的窗口布局吗？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
@@ -310,49 +321,182 @@ class MainWindow(QMainWindow):
         formatMenu.addAction(self.restoreColorAct)
 
     def openOldFile(self):
-        fname = QFileDialog.getOpenFileName(self, '打开旧文件',"","Excel(*.xlsx *.xls)")
-        if fname[0] != '':
-            self.OldXlsx = MyXlsx(fname[0])
-            self.CentralWidget.setOldTable(self.OldXlsx.SheetDatas)
-            self.CellDiffWidget.clear()
-            self.RowDiffWidget.clear()
-            self.ColDiffWidget.clear()
-            self.IsAna = False
-
-    def openNewFile(self):
-        fname = QFileDialog.getOpenFileName(self, '打开新文件',"","Excel(*.xlsx *.xls)")
-        if fname[0] != '':
-            self.NewXlsx = MyXlsx(fname[0])
-            self.CentralWidget.setNewTable(self.NewXlsx.SheetDatas)
-            self.CellDiffWidget.clear()
-            self.RowDiffWidget.clear()
-            self.ColDiffWidget.clear()
-            self.IsAna = False
-
-    def beginAna(self):
         if self.isanaing == True:
             QMessageBox.warning(self, "提示", "正在分析！请稍等！", QMessageBox.Ok)
             return
-        
+        fname = QFileDialog.getOpenFileName(self, '打开旧文件',"","Excel(*.xlsx *.xls)")
+        self.oldfilename = fname[0]
+        if fname[0] != '':
+            self.OpenOldThread = OpenFileThread(fname[0])
+            self.OpenOldThread.finished.connect(self.openOldDone)
+            self.OpenOldThread.start()
+            self.CellDiffWidget.clear()
+            self.RowDiffWidget.clear()
+            self.ColDiffWidget.clear()
+            self.IsAna = False
+            self.SheetDiff = {}
+            try:
+                self.CentralWidget.OldTableWidget.currentChanged.disconnect(self.setDiff)
+            except:
+                pass
+
+    def openNewFile(self):
+        if self.isanaing == True:
+            QMessageBox.warning(self, "提示", "正在分析！请稍等！", QMessageBox.Ok)
+            return
+        fname = QFileDialog.getOpenFileName(self, '打开新文件',"","Excel(*.xlsx *.xls)")
+        self.newfilename = fname[0]
+        if fname[0] != '':
+            self.OpenNewThread = OpenFileThread(fname[0])
+            self.OpenNewThread.finished.connect(self.openNewDone)
+            self.OpenNewThread.start()
+
+            self.CellDiffWidget.clear()
+            self.RowDiffWidget.clear()
+            self.ColDiffWidget.clear()
+            self.IsAna = False
+            self.SheetDiff = {}
+            try:
+                self.CentralWidget.OldTableWidget.currentChanged.disconnect(self.setDiff)
+            except:
+                pass
+
+    def openNewDone(self):
+        self.NewXlsx = self.OpenNewThread.Xlrd
+        self.CentralWidget.setNewTable(self.NewXlsx.SheetDatas)
+    
+    def openOldDone(self):
+        self.OldXlsx = self.OpenOldThread.Xlrd
+        self.CentralWidget.setOldTable(self.OldXlsx.SheetDatas)
+
+    def beginAna(self):
+        self.Threads = []
+        self.ColorSettings = QSettings("ExcelDiffer", "Color");
+        addcol = self.ColorSettings.value("add")
+        delcol = self.ColorSettings.value("delcolor")
+
         oi = self.CentralWidget.OldTableWidget.currentIndex()
         ni = self.CentralWidget.NewTableWidget.currentIndex()
         if oi == -1 or ni ==-1:
             QMessageBox.warning(self, "提示", "请先打开Excel！", QMessageBox.Ok)
             return
-        reply = QMessageBox.warning(self, "确定比较吗？", "将要比较 "+self.OldXlsx.SheetDatas[oi]["name"]+" 和 "+self.NewXlsx.SheetDatas[ni]["name"], QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
-        if reply == QMessageBox.No:
+
+        if self.oldfilename == self.newfilename:
+            QMessageBox.warning(self, "提示", "文件相同，无需比较。", QMessageBox.Ok)
             return
-        self.Alg.setOldData(self.OldXlsx.SheetDatas[oi])
-        self.Alg.setNewData(self.NewXlsx.SheetDatas[ni])
+
+        if self.isanaing == True:
+            QMessageBox.warning(self, "提示", "正在分析！请稍等！", QMessageBox.Ok)
+            return
+
+        if self.CentralWidget.Lock == False:
+            reply = QMessageBox.warning(self, "确定比较吗？", "将要比较 "+self.OldXlsx.SheetDatas[oi]["name"]+" 和 "+self.NewXlsx.SheetDatas[ni]["name"], QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
+            if reply == QMessageBox.No:
+                return
+            self.Alg["###"].setOldData(self.OldXlsx.SheetDatas[oi])
+            self.Alg["###"].setNewData(self.NewXlsx.SheetDatas[ni])
+            
+            self.isanaing =True
+            thread = Thread(self)
+            thread.done.connect(self.doneDiffOne)
+            thread.window.Alg["###"].statueSignal.connect(self.bar.showMessage)
+            thread.start()
+            self.Threads.append(thread)
+        else:
+            reply = QMessageBox.warning(self, "确定比较吗？", "将要比较整个文件", QMessageBox.Yes | QMessageBox.No, QMessageBox.No);
+            if reply == QMessageBox.No:
+                return
+
+            oldcount = self.CentralWidget.OldTableWidget.count()
+            newcount = self.CentralWidget.NewTableWidget.count()
+
+            self.SheetDiff = {}
+            self.diffcount=0
+            self.donecount=0
+
+            self.delsheetcount = 0
+            self.addsheetcount = 0
+
+            # 计算删除的标签页
+            for i in range(oldcount):
+                flag = False
+                for j in range(newcount):
+                    if self.CentralWidget.OldTableWidget.tabText(i) == self.CentralWidget.NewTableWidget.tabText(j):
+                        self.diffcount = self.diffcount+1
+                        flag = True
+                if flag == False:
+                    self.CentralWidget.OldTableWidget.setTabBarColor(i,delcol)
+                    self.delsheetcount = self.delsheetcount + 1
+            
+            # 计算新增的标签页
+            for i in range(newcount):
+                flag = False
+                for j in range(oldcount):
+                    if self.CentralWidget.OldTableWidget.tabText(j) == self.CentralWidget.NewTableWidget.tabText(i):
+                        flag = True
+                if flag == False:
+                    self.CentralWidget.NewTableWidget.setTabBarColor(i,addcol)    
+                    self.addsheetcount = self.addsheetcount + 1
+            
+            have = False
+            for i in range(oldcount):
+                for j in range(newcount):
+                    if self.CentralWidget.OldTableWidget.tabText(i) == self.CentralWidget.NewTableWidget.tabText(j):
+                        have = True
+                        self.Alg[self.CentralWidget.OldTableWidget.tabText(i)] = MyAlg()
+                        self.Alg[self.CentralWidget.OldTableWidget.tabText(i)].setOldData(self.OldXlsx.SheetDatas[i])
+                        self.Alg[self.CentralWidget.OldTableWidget.tabText(i)].setNewData(self.NewXlsx.SheetDatas[j])
+                        self.isanaing =True
+                        thread = Thread(self,self.CentralWidget.OldTableWidget.tabText(i))
+                        thread.done.connect(self.doneDiffAll)
+                        thread.window.Alg[self.CentralWidget.OldTableWidget.tabText(i)].statueSignal.connect(self.bar.showMessage)
+                        thread.start()
+                        self.Threads.append(thread)
+            
+            if have == False:
+                QMessageBox.information(self, "提示", "没有同名Sheet需要比较！", QMessageBox.Ok)
+            
         
-        self.isanaing =True
-        self.Thread = Thread(self)
-        self.Thread.done.connect(self.doneDiff)
-        self.Thread.window.Alg.statueSignal.connect(self.bar.showMessage)
-        
-        self.Thread.start()
-        
-    def doneDiff(self,diff):
+    def doneDiffAll(self,diff):
+        self.SheetDiff[diff["diffname"]]=diff
+        self.donecount = self.donecount + 1    
+        if self.donecount == self.diffcount:
+
+            self.IsAna = True
+            self.isanaing =False
+            self.CentralWidget.OldTableWidget.currentChanged.connect(self.setDiff)
+
+            flag = True
+            for diffff in self.SheetDiff:
+                for item in self.SheetDiff[diffff]:
+                    if len(self.SheetDiff[diffff][item]) != 0 and item != "diffname":
+                        flag = False
+            if flag == True:
+                QMessageBox.information(self, "提示", "分析完毕！无改动！", QMessageBox.Ok)
+                return
+
+            oi = self.CentralWidget.OldTableWidget.currentIndex()
+            text = self.CentralWidget.OldTableWidget.tabText(oi)
+            if text in self.SheetDiff:
+                self.RowDiffWidget.setData(self.SheetDiff[text])
+                self.ColDiffWidget.setData(self.SheetDiff[text])
+                self.CellDiffWidget.setData(self.SheetDiff[text])
+                self.CentralWidget.setColor(self.SheetDiff[text])
+            QMessageBox.information(self, "提示", "分析完毕，共新增了"+str(self.addsheetcount)+"个标签页，删除了"+str(self.delsheetcount)+"个标签页。\n切换标签页查看差异信息！", QMessageBox.Ok)
+            
+    
+    def setDiff(self,id):
+        self.RowDiffWidget.clear()
+        self.ColDiffWidget.clear()
+        self.CellDiffWidget.clear()
+        text = self.CentralWidget.OldTableWidget.tabText(id)
+        if text in self.SheetDiff:
+            self.RowDiffWidget.setData(self.SheetDiff[text])
+            self.ColDiffWidget.setData(self.SheetDiff[text])
+            self.CellDiffWidget.setData(self.SheetDiff[text])
+            self.CentralWidget.setColor(self.SheetDiff[text])
+
+    def doneDiffOne(self,diff):
         self.SheetDiff = diff
         self.RowDiffWidget.setData(diff)
         self.ColDiffWidget.setData(diff)
@@ -361,6 +505,16 @@ class MainWindow(QMainWindow):
         self.IsAna = True
         self.isanaing =False
         self.bar.showMessage("分析完毕！")
+        flag = True
+        for item in diff:
+            
+            if len(diff[item]) != 0 and item != "diffname":
+                flag = False
+        
+        if flag == False:
+            QMessageBox.information(self, "提示", "分析完毕！", QMessageBox.Ok)
+        else:
+            QMessageBox.information(self, "提示", "分析完毕！无改动！", QMessageBox.Ok)
 
 if __name__=="__main__":
 

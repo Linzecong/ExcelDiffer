@@ -9,6 +9,20 @@ class MyAlg(QObject):
     YZ = 0.5 #匹配成功的阈值 0~1越高精准度越高，
     PP = 0.8 #用于不用跑完全部行，加速比较 ，PP >= YZ
 
+    # 最长公共子串
+    def lcsub(self,s1, s2):   
+        m=[[0 for i in range(len(s2)+1)]  for j in range(len(s1)+1)]
+        mmax=0   # 最长匹配的长度  
+        p=0  # 最长匹配对应在s1中的最后一位  
+        for i in range(len(s1)):  
+            for j in range(len(s2)):  
+                if s1[i]==s2[j]:  
+                    m[i+1][j+1]=m[i][j]+1  
+                    if m[i+1][j+1]>mmax:  
+                        mmax=m[i+1][j+1]  
+                        p=i+1  
+        return s1[p-mmax:p],mmax,p-mmax   #返回最长子串及其长度，和起始位置
+
     def lcs(self,a, b, lena, lenb):
         c = [[0 for i in range(lenb+1)] for j in range(lena+1)]
         for i in range(lena):
@@ -121,6 +135,13 @@ class MyAlg(QObject):
 
         # print(self.NewData)
 
+    def hashlist(self,li):
+        ans = "!@#$%$"
+        for data in li:
+            ans = ans + str(data)
+            ans = hashlib.md5(ans.encode(encoding='UTF-8')).hexdigest()[0:16]
+        return ans
+
     def getSheetdiff(self):
         """
         分析表格区别算法
@@ -179,6 +200,11 @@ class MyAlg(QObject):
                 li.append(olddata[i][j])
             col_oldhash.append(li)
 
+        # 用于求公共子串
+        colhashone_old = []
+        for tmp in col_oldhash:
+            colhashone_old.append(self.hashlist(tmp))
+
         # 将新表的每一列进行hash 相当于转置 O(N*M)
         newdata = self.NewData["data"]
         coln = self.NewData["col"]
@@ -190,6 +216,11 @@ class MyAlg(QObject):
                 li.append(newdata[i][j])
             col_newhash.append(li)
 
+        # 用于求公共子串
+        colhashone_new = []
+        for tmp in col_newhash:
+            colhashone_new.append(self.hashlist(tmp))
+
         ct = datetime.datetime.now()
         print("cal_col_hash_done!",(ct-lt).seconds)
         lt = datetime.datetime.now()
@@ -198,45 +229,63 @@ class MyAlg(QObject):
 
         # 计算增删的列
         # 最长公共子序列， 有时间将修改成 O(ND)的算法
-        
+
+        # 行列哪个少，先进行哪个
+    
         diff["add_col"] = []
         diff["del_col"] = []
-
-        
 
         col_mp = [-1]*coln  # 列对应 新 -> 旧
         col_vis = [0]*colo  # 旧中已匹配的列
 
-        totlen = len(col_newhash) * len (col_oldhash)
+        totlen = len(col_newhash)
         curLen = 0 # 用于显示状态栏消息
 
 
-        for i, nli in enumerate(col_newhash):
-            curP = 0.0
-            curIndex = -1
-            for j, oli in enumerate(col_oldhash):
-                if col_vis[j] == 1:
-                    continue
+        iscoldone = False
+        tmpans = self.lcsub(colhashone_old,colhashone_new)
+
+        if tmpans[1] == coln:
+            for i in range(coln):
+                col_mp[i]=tmpans[2]+i
+                col_vis[tmpans[2]+i]=1
+                iscoldone = True
+        
+        tmpans = self.lcsub(colhashone_new,colhashone_old)
+        if tmpans[1] == colo:
+            for i in range(colo):
+                col_mp[tmpans[2]+i]=i
+                col_vis[i]=1
+                iscoldone = True
+
+        if iscoldone == False:
+            for i, nli in enumerate(col_newhash):
+                curP = 0.0
+                curIndex = -1
                 curLen = curLen +1
                 self.statueSignal.emit("正在分析列："+str(curLen)+" / "+str(totlen))
+                for j, oli in enumerate(col_oldhash):
+                    if col_vis[j] == 1:
+                        continue
 
-                lena = len(nli)
-                lenb = len(oli)
-                if lena == 0 or lenb == 0:
-                    break;
-                num = float(self.lcs(nli, oli, lena, lenb))
-                if num/lena > curP and col_vis[j] == 0:
-                    curP = num/lena
-                    curIndex = j
-                elif num/lenb > curP and col_vis[j] == 0:
-                    curP = num/lenb
-                    curIndex = j
-                if curP >= self.PP: # 剪枝
-                    break
+                    lena = len(nli)
+                    lenb = len(oli)
+                    if lena == 0 or lenb == 0:
+                        break;
+                    num = float(self.lcs(nli, oli, lena, lenb))
+                    if num/lena > curP and col_vis[j] == 0:
+                        curP = num/lena
+                        curIndex = j
+                    elif num/lenb > curP and col_vis[j] == 0:
+                        curP = num/lenb
+                        curIndex = j
+                    if curP >= self.PP: # 剪枝
+                        break
 
-            if curP >= self.YZ:
-                col_mp[i] = curIndex
-                col_vis[curIndex] = 1
+                if curP >= self.YZ:
+                    col_mp[i] = curIndex
+                    col_vis[curIndex] = 1
+
 
         self.statueSignal.emit("正在分析！   36%")
         # print(col_mp, col_vis)
@@ -264,6 +313,12 @@ class MyAlg(QObject):
                     li.append(olddata[i][j])
             row_oldhash.append(li)
 
+        
+
+        rowhashone_old = []
+        for tmp in olddata:
+            rowhashone_old.append(self.hashlist(tmp))
+
         # 将新表的每一行进行hash
         row_newhash = []
         for i in range(rown):
@@ -272,6 +327,10 @@ class MyAlg(QObject):
                 if item != -1:
                     li.append(newdata[i][j])
             row_newhash.append(li)
+        
+        rowhashone_new = []
+        for tmp in newdata:
+            rowhashone_new.append(self.hashlist(tmp))
 
         ct = datetime.datetime.now()
         print("cal_row_hash_done!",(ct-lt).seconds)
@@ -283,37 +342,58 @@ class MyAlg(QObject):
         row_mp = [-1]*rown  # 列对应 新 -> 旧
         row_vis = [0]*rowo  # 旧中已匹配的列
 
-        totlen = len(row_newhash) * len (row_oldhash)
+        totlen = len(row_newhash)
         curLen = 0 # 用于显示状态栏消息
 
-        for i, nli in enumerate(row_newhash):
-            curP = 0.0
-            curIndex = -1
-            for j, oli in enumerate(row_oldhash):
-                if row_vis[j] == 1:
-                    continue
+        isrowdone = False
+        tmpans = self.lcsub(rowhashone_old,rowhashone_new)
+
+        if tmpans[1] == rown:
+            for i in range(rown):
+                row_mp[i]=tmpans[2]+i
+                row_vis[tmpans[2]+i]=1
+                isrowdone = True
+                diff["add_col"] = []
+                diff["del_col"] = []
+        
+        tmpans = self.lcsub(rowhashone_new,rowhashone_old)
+        if tmpans[1] == rowo:
+            for i in range(rowo):
+                row_mp[tmpans[2]+i]=i
+                row_vis[i]=1
+                isrowdone = True
+                diff["add_col"] = []
+                diff["del_col"] = []
+        
+        if isrowdone ==  False:
+            for i, nli in enumerate(row_newhash):
+                curP = 0.0
+                curIndex = -1
                 curLen = curLen +1
                 self.statueSignal.emit("正在分析行："+str(curLen)+" / "+str(totlen))
+                for j, oli in enumerate(row_oldhash):
+                    if row_vis[j] == 1:
+                        continue
 
-                lena = len(nli)
-                lenb = len(oli)
-                if lena == 0 or lenb == 0:
-                    break;
-                num = float(self.lcs(nli, oli, lena, lenb))
-                if lena ==0:
-                    print(nli,i)
-                if num/lena > curP and row_vis[j] == 0:
-                    curP = num/lena
-                    curIndex = j
-                elif num/lenb > curP and row_vis[j] == 0:
-                    curP = num/lenb
-                    curIndex = j
-                if curP >= self.PP: # 剪枝
-                    break
-            if curP >= self.YZ:
-                row_mp[i] = curIndex
-                row_vis[curIndex] = 1
-        # print(row_mp, row_vis)
+                    lena = len(nli)
+                    lenb = len(oli)
+                    if lena == 0 or lenb == 0:
+                        break;
+                    num = float(self.lcs(nli, oli, lena, lenb))
+                    if lena ==0:
+                        print(nli,i)
+                    if num/lena > curP and row_vis[j] == 0:
+                        curP = num/lena
+                        curIndex = j
+                    elif num/lenb > curP and row_vis[j] == 0:
+                        curP = num/lenb
+                        curIndex = j
+                    if curP >= self.PP: # 剪枝
+                        break
+                if curP >= self.YZ:
+                    row_mp[i] = curIndex
+                    row_vis[curIndex] = 1
+   
         for i, item in enumerate(row_mp):
             if item == -1:
                 diff["add_row"].append(i+1)
@@ -321,6 +401,31 @@ class MyAlg(QObject):
         for i, item in enumerate(row_vis):
             if item == 0:
                 diff["del_row"].append(i+1)
+
+
+        # TH 判断
+
+        if coln == 0 and rown == 0:
+            if len(diff["del_row"]) < len(diff["del_col"]):
+                diff["del_col"] = []
+            else:
+                diff["del_row"] = []
+
+        if colo == 0 and rowo == 0:
+            if len(diff["add_row"]) < len(diff["add_col"]):
+                diff["add_col"] = []
+            else:
+                diff["add_row"] = []
+
+        # if coln != 0 and float(len(diff["add_col"]))/float(coln) >= self.TH and rown != 0 and float(len(diff["add_row"]))/float(rown) < self.TH and rowo!=0 and float(len(diff["del_row"]))/float(rowo) <= self.TH:
+        #     diff["add_col"] = []
+        # elif rown != 0 and float(len(diff["add_row"]))/float(rown) >= self.TH and coln != 0 and float(len(diff["add_col"]))/float(coln) <= self.TH and colo!=0 and float(len(diff["del_col"]))/float(colo) <= self.TH:
+        #     diff["add_row"] = []
+        # elif colo != 0 and float(len(diff["del_col"]))/float(colo) >= self.TH and rown !=0 and float(len(diff["add_row"]))/float(rown) < self.TH and rowo!=0 and float(len(diff["del_row"]))/float(rowo) <= self.TH:
+        #     diff["del_col"] = []
+        # elif rowo !=0 and float(len(diff["del_row"]))/float(rowo) >= self.TH and coln != 0 and float(len(diff["add_col"]))/float(coln) <= self.TH and colo!=0 and float(len(diff["del_col"]))/float(colo) <= self.TH:
+        #     diff["del_row"] = []
+
 
         ct = datetime.datetime.now()
         print("cal_row_add_del_done!",(ct-lt).seconds)

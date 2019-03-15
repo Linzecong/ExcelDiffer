@@ -1,11 +1,14 @@
 #-*- codingg:utf8 -*-
 from PyQt5.QtWidgets import QWidget, QTabWidget, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout,QAbstractItemView
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont,QColor
 from PyQt5.QtCore import pyqtSignal,QSettings
 import sys
 import xlrd
 class ExcelWidget(QTabWidget):
     cellClicked = pyqtSignal(int,int)
+    hbarchange = pyqtSignal(int)
+    vbarchange = pyqtSignal(int)
+
     def __init__(self):
         super(ExcelWidget,self).__init__()
         self.TableWidgets = []
@@ -39,6 +42,8 @@ class ExcelWidget(QTabWidget):
         for sheet in data:
             tableWidget = QTableWidget()
             tableWidget.cellClicked.connect(self.cellClicked.emit)
+            tableWidget.horizontalScrollBar().valueChanged.connect(self.hbarchange.emit)
+            tableWidget.verticalScrollBar().valueChanged.connect(self.vbarchange.emit)
 
             tableWidget.setStyleSheet("selection-background-color: "+hightlight+";selection-color:black");
             hlable = []
@@ -69,6 +74,8 @@ class ExcelWidget(QTabWidget):
             self.TableWidgets.append(tableWidget)
             self.addTab(tableWidget,sheet["name"])
 
+    def setTabBarColor(self,index,col):
+        self.tabBar().setTabTextColor(index,QColor(col))
 
 if __name__=="__main__":
     app = QApplication(sys.argv)

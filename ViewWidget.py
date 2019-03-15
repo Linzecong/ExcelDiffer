@@ -1,5 +1,5 @@
 #-*- codingg:utf8 -*-
-from PyQt5.QtWidgets import QWidget,QAction, QSplitter, QMainWindow, QApplication, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout
+from PyQt5.QtWidgets import QScrollBar, QWidget,QAction, QSplitter, QMainWindow, QApplication, QTableWidgetItem,QTableWidget,QHBoxLayout,QVBoxLayout
 from PyQt5.QtGui import QBrush,QColor,QIcon
 from PyQt5.QtCore import Qt,QSettings
 import sys
@@ -23,6 +23,12 @@ class ViewWidget(QMainWindow):
 
         self.OldTableWidget.cellClicked.connect(lambda x,y:self.setSameCell(x,y,0))
         self.NewTableWidget.cellClicked.connect(lambda x,y:self.setSameCell(x,y,1))
+        
+        self.OldTableWidget.hbarchange.connect(lambda x:self.NewTableWidget.TableWidgets[self.NewTableWidget.currentIndex()].horizontalScrollBar().setValue(x))
+        self.NewTableWidget.vbarchange.connect(lambda x:self.OldTableWidget.TableWidgets[self.OldTableWidget.currentIndex()].verticalScrollBar().setValue(x))
+
+        self.NewTableWidget.hbarchange.connect(lambda x:self.OldTableWidget.TableWidgets[self.OldTableWidget.currentIndex()].horizontalScrollBar().setValue(x))
+        self.OldTableWidget.vbarchange.connect(lambda x:self.NewTableWidget.TableWidgets[self.NewTableWidget.currentIndex()].verticalScrollBar().setValue(x))
  
         self.initAction()
         self.initToolbar()
@@ -60,11 +66,11 @@ class ViewWidget(QMainWindow):
 
     def initAction(self):
         self.LockAction = QAction(QIcon("icon/lock.png"),"锁定",self)
-        self.LockAction.setStatusTip("锁定表格，使得切换标签页时，新旧两个表格同步")
+        self.LockAction.setStatusTip("锁定表格，使得切换标签页时，新旧两个表格同步，且比较时将比较整个文件！")
         self.LockAction.triggered.connect(self.lockTab)
 
         self.UnlockAction = QAction(QIcon("icon/unlock.png"),"解锁",self)
-        self.UnlockAction.setStatusTip("解锁表格，使得切换标签页时，新旧两个表格不会同步")
+        self.UnlockAction.setStatusTip("解锁表格，使得切换标签页时，新旧两个表格不会同步，且只比较选定的标签！")
         self.UnlockAction.triggered.connect(self.unlockTab)
 
     def lockTab(self):
